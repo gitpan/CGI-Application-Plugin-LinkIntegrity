@@ -10,11 +10,11 @@ CGI::Application::Plugin::LinkIntegrity - Make tamper-resisistent links in CGI::
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -159,8 +159,17 @@ instance, with using L<CGI::Application::Config::Context>:
 
         my $config = $self->conf->context;
 
-        $self->link_integrity_config($config->{'LinkIntegrity'});
-        $self->run_modes([$config->{'LinkIntegrity'}{'link_tampered_run_mode'} || 'link_tampered']);
+        $self->link_integrity_config(
+            $config->{'LinkIntegrity'},
+            additional_data => sub {
+                my $self = shift;
+                return $self->session->id;
+            },
+        );
+
+        my $link_tampered_rm = $config->{'LinkIntegrity'}{'link_tampered_run_mode'} || 'link_tampered';
+
+        $self->run_modes([$link_tampered_rm]);
     }
 
 Then in your configuration file:
@@ -195,6 +204,34 @@ checksums on arbitrary data that will always pass the integrity check in
 your application.  That's a Bad Thing, so don't let other people know
 your secret string, and don't use the default secret string if you can
 help it.
+
+=item additional_data
+
+You can pass constant additional data to the checksum generator for every link.
+
+    $self->link_integrity_config(
+        secret          => 'really secret',
+        additional_data => 'some other secret data',
+    }
+
+
+For instance, to stop one user from following a second user's link, you
+can add a user-specific component to the session, such as the user's
+session id:
+
+    $self->link_integrity_config(
+        secret          => 'really secret',
+        additional_data => sub {
+            my $self = shift;
+            return $self->session->id;
+        }
+    }
+
+You can pass a string instead of a subroutine.  But in the case of the
+user's session, a subroutine is useful so that you get the value of the
+user's session at the time when the checksum is generated, not at the
+time when the link integrity system is configured.
+
 
 =item checksum_param
 
@@ -355,7 +392,11 @@ sub make_link {
         croak 'usage $self->make_link($uri, \%params) or $self->make_link($uri, \@params)';
     }
 
-    my $checksum = _hmac($self, $uri, $config->{'additional_data'});
+
+    my $additional_data = $config->{'additional_data'};
+    $additional_data = $additional_data->($self) if ref $additional_data eq 'CODE';
+
+    my $checksum = _hmac($self, $uri, $additional_data);
 
     $uri->query_form(@query_form);
     $uri->query_param_append($config->{'checksum_param'} => $checksum);

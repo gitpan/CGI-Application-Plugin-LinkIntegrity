@@ -3,7 +3,7 @@ NAME
     in CGI::Application
 
 VERSION
-    Version 0.01
+    Version 0.02
 
 SYNOPSIS
     In your application:
@@ -116,8 +116,17 @@ METHODS
 
             my $config = $self->conf->context;
 
-            $self->link_integrity_config($config->{'LinkIntegrity'});
-            $self->run_modes([$config->{'LinkIntegrity'}{'link_tampered_run_mode'} || 'link_tampered']);
+            $self->link_integrity_config(
+                $config->{'LinkIntegrity'},
+                additional_data => sub {
+                    my $self = shift;
+                    return $self->session->id;
+                },
+            );
+
+            my $link_tampered_rm = $config->{'LinkIntegrity'}{'link_tampered_run_mode'} || 'link_tampered';
+
+            $self->run_modes([$link_tampered_rm]);
         }
 
     Then in your configuration file:
@@ -149,6 +158,32 @@ METHODS
         check in your application. That's a Bad Thing, so don't let other
         people know your secret string, and don't use the default secret
         string if you can help it.
+
+    additional_data
+        You can pass constant additional data to the checksum generator for
+        every link.
+
+            $self->link_integrity_config(
+                secret          => 'really secret',
+                additional_data => 'some other secret data',
+            }
+
+        For instance, to stop one user from following a second user's link,
+        you can add a user-specific component to the session, such as the
+        user's session id:
+
+            $self->link_integrity_config(
+                secret          => 'really secret',
+                additional_data => sub {
+                    my $self = shift;
+                    return $self->session->id;
+                }
+            }
+
+        You can pass a string instead of a subroutine. But in the case of
+        the user's session, a subroutine is useful so that you get the value
+        of the user's session at the time when the checksum is generated,
+        not at the time when the link integrity system is configured.
 
     checksum_param
         The name of the checksum parameter, which is added to the query

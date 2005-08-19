@@ -115,6 +115,54 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
 
 
 
+        # Same test as above, except using a subroutine for the additional data
+        # parameter
+
+        $secret = 'again with the secrets';
+
+        $self->param('base' => 3);
+
+        $self->link_integrity_config(
+            'secret'         => $secret,
+            'checksum_param' => '??_link_guardian__??',
+            'additional_data' => sub { my $self = shift; $self->param('base') * 10 * 10 * 5 },
+        );
+
+        $uri = '/foo/bar/baz?one=foo&two=boom';
+        $link = $self->make_link($uri);
+
+        $hmac = Digest::HMAC->new($secret, 'Digest::MD5');
+
+        $u = URI->new($uri, 'http');
+        $hmac->add($u->scheme     || '');
+        $hmac->add($u->authority  || '');
+        $hmac->add($u->port       || '');
+        $hmac->add($u->path       || '');
+        foreach my $key (sort $u->query_param) {
+            $hmac->add('key');
+            $hmac->add($key);
+            $hmac->add('values');
+            foreach my $val (sort $u->query_param($key)) {
+                $hmac->add($val);
+            }
+        }
+        $hmac->add(1500); # additional_data sub (base = 3) * 10 * 10 * 5;
+
+        $checksum = $hmac->hexdigest;
+
+
+        %params = $link->query_form;
+
+        ok(keys %params == 3,                           '[additional_data sub] param keys');
+        is($params{'one'}, 'foo',                       '[additional_data sub] param "one"');
+        is($params{'two'}, 'boom',                      '[additional_data sub] param "two"');
+        is($params{'??_link_guardian__??'}, $checksum,  '[additional_data sub] param "??_link_guardian__??"');
+
+
+
+
+
+
         # Same test but with SHA1 (if available)
         SKIP: {
             eval {
