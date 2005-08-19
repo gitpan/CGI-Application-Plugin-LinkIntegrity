@@ -1,0 +1,21 @@
+Build.PL
+Changes
+lib/CGI/Application/Plugin/LinkIntegrity.pm
+Makefile.PL
+MANIFEST			This list of files
+MANIFEST.SKIP
+META.yml
+misc/dist
+misc/makedocs.pl
+misc/module-starter-opts.txt
+misc/style.css
+README
+t/00.load.t
+t/01-make_link.t
+t/02-make_self_link.t
+t/03-hmac.t
+t/04-tampering.t
+t/05-built_in_link_tampered_rm.t
+t/06-invalid_checksum_hook.t
+t/pod-coverage.t
+t/pod.t

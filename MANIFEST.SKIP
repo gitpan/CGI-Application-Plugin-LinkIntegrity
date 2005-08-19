@@ -1,0 +1,13 @@
+^_build
+^Build$
+^blib
+~$
+\.cvsignore$
+\.bak$
+CVS
+^cover_db
+^readme.txt$
+^changes.txt$
+^[^/]*\.html$
+\.gz$
+\.tar$
