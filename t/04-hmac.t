@@ -41,7 +41,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
         );
 
         my $uri = '/foo/bar/baz?one=foo&two=boom';
-        my $link = $self->make_link($uri);
+        my $link = $self->link($uri);
 
         my $hmac = Digest::HMAC->new($secret, 'Digest::MD5');
 
@@ -84,7 +84,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
         );
 
         $uri = '/foo/bar/baz?one=foo&two=boom';
-        $link = $self->make_link($uri);
+        $link = $self->link($uri);
 
         $hmac = Digest::HMAC->new($secret, 'Digest::MD5');
 
@@ -129,7 +129,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
         );
 
         $uri = '/foo/bar/baz?one=foo&two=boom';
-        $link = $self->make_link($uri);
+        $link = $self->link($uri);
 
         $hmac = Digest::HMAC->new($secret, 'Digest::MD5');
 
@@ -180,7 +180,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
             );
 
             $uri = '/foo/bar/baz?one=foo&two=boom';
-            $link = $self->make_link($uri);
+            $link = $self->link($uri);
 
             $hmac = Digest::HMAC->new($secret, 'Digest::SHA1');
 
@@ -225,7 +225,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
         );
 
         $uri = '/foo/bar/baz?one=foo&two=boom';
-        $link = $self->make_link($uri);
+        $link = $self->link($uri);
 
         $checksum = '_X_foo_X_bar_X_baz_X_one_X_foo_X_two_X_boom|edcba';
 

@@ -57,7 +57,7 @@ my $Created_Link;
     }
     sub create_link {
         my $self = shift;
-        return $self->make_link($self->param('create_link'));
+        return $self->link($self->param('create_link'));
     }
     sub link_tampered {
         my $self = shift;

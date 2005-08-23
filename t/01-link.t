@@ -31,20 +31,15 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
             secret        => 'foo',
         );
         eval {
-            $self->make_link('/fee/fie/foo');
+            $self->link('/fee/fie/foo');
         };
         ok($@, '[usage] bad digest_module caught');
 
         $self->link_integrity_config(secret => 'foo');  # this should reset the config
 
-        # Test bad params
-        eval {
-            $self->make_link('/fee/fie/foo', wubba => 'woo', 'foo' => 'bar', bar=> 'baz' );
-        };
-        ok($@, '[usage] bad params caught');
 
         # Test that the checksum is created
-        my $link = $self->make_link('/foo/bar/baz');
+        my $link = $self->link('/foo/bar/baz');
 
         my $uri = URI->new($link);
         my %params = $uri->query_form;
@@ -54,7 +49,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
         ok(length $params{'_checksum'}, '[basic checksum] URI checksum');
 
         # Test that url params are retained
-        $link = $self->make_link('/foo/bar/baz/boom?wubba=woo&foo=bar&bar=baz');
+        $link = $self->link('/foo/bar/baz/boom?wubba=woo&foo=bar&bar=baz');
 
         $uri = URI->new($link);
         %params = $uri->query_form;
@@ -67,7 +62,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
         is($params{'wubba'}, 'woo',          '[params (qs)] URI param:wubba');
 
         # Test explicitly passing url params
-        $link = $self->make_link('/fee/fie/foo', { wubba => 'woo', 'foo' => 'bar', bar=> 'baz' });
+        $link = $self->link('/fee/fie/foo?wubba=woo', 'foo' => 'bar', bar=> 'baz');
 
         $uri = URI->new($link);
         %params = $uri->query_form;
@@ -85,7 +80,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
             checksum_param => 'gordon',
             secret         => 'sooper secret',
         );
-        $link = $self->make_link('/foo/bar/baz');
+        $link = $self->link('/foo/bar/baz');
         $uri = URI->new($link);
         %params = $uri->query_form;
 

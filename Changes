@@ -1,5 +1,35 @@
 Revision history for CGI-Application-Plugin-LinkIntegrity
 
-0.01_01 ????
+0.03 ????
+        - NOTE:  This release is not compatible with previous versions.
+        - API radically rewritten to make it possible to protect links
+          directly from within templates (Thanks to Michael Peter and
+          Mark Stosberg for the feedback and ideas)
+        - the following methods have changed:
+
+          Old Syntax                                         New Syntax
+          ==========                                         ==========
+          ->make_link($url, { 'p1' => 'v1'})                 ->link($url, 'p1' => 'v1')
+
+          ->make_self_link($url,                             ->self_link($url, 'p1' => 'v1')
+                            keep_path_info => 1,
+                            params => { 'p1' => 'v1'})
+
+          ->make_self_link($url,                             ->path_link('', 'p1' => 'v1')
+                            keep_path_info => 0,
+                            params => { 'p1' => 'v1'})
+
+          ->make_self_link($url,                             ->path_link('/new/path', 'p1' => 'v1')
+                            path_info => '/new/path'
+                            params => { 'p1' => 'v1'}
+                          )
+
+        - added documentation illustrating how to call link, make_link,
+          etc. directly from templates
+
+0.02 ????
+        - added 'additional_data' feature
+
+0.01 ????
         - First development version released for comments and feedback
 

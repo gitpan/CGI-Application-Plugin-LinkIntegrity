@@ -3,7 +3,7 @@ NAME
     in CGI::Application
 
 VERSION
-    Version 0.02
+    Version 0.03
 
 SYNOPSIS
     In your application:
@@ -26,9 +26,9 @@ SYNOPSIS
             my $template = $self->load_tmpl('account.html');
 
             $template->param(
-                'balance'    => $self->make_link("/account.cgi?rm=balance&acct_id=$account_id");
-                'transfer'   => $self->make_link("/account.cgi?rm=transfer&acct_id=$account_id");
-                'withdrawal' => $self->make_link("/account.cgi?rm=withdrawl&acct_id=$account_id");
+                'balance'    => $self->link("/account.cgi?rm=balance&acct_id=$account_id");
+                'transfer'   => $self->link("/account.cgi?rm=transfer&acct_id=$account_id");
+                'withdrawal' => $self->link("/account.cgi?rm=withdrawl&acct_id=$account_id");
             );
         }
 
@@ -52,12 +52,41 @@ SYNOPSIS
     from 73 to 74, the "_checksum" will not match, and the system will treat
     it as an intrusion attempt.
 
+  Calling link and self_link directly from the template
+    If you use "Template::Toolkit|Template" or
+    "HTML::Template::Plugin::Dot", you can pass the "CGI::Application" $self
+    object into the template and call "link" and "self_link" directly from
+    the template. In your app:
+
+        $template->param(
+            'app'     => $self,
+            'name'    => 'gordon',
+            'email'   => 'gordon@example.com',
+        );
+
+    And in your template you can use
+
+        # Template::Toolkit syntax
+        <a href="[% app.self_link('name', name, 'email', email %]">...</a>
+
+        # HTML::Template::Plugin::Dot syntax
+        <a href="<TMPL_VAR NAME="app.self_link('name', name, 'email', email">">...</a>
+
+        # Petal syntax
+        <a href="http://www.example.com"
+           tal:attributes="href app/self_link('name', name, 'email', email)">...</a>
+
+    Note that in the parameters of the call to << link >>, items enclosed in
+    quotes are treated as literal parameters and barewords are treated as
+    template params. So 'email' is the literal string, and "email" is the
+    template paramter named email (in this case 'gordon@example.com').
+
 DESCRIPTION
     "CGI::Application::Plugin::LinkIntegrity" lets you create
     tamper-resistent links within your CGI::Application project. When you
-    create an URL with "make_link", a "_checksum" is added to the URL:
+    create an URL with "link", a "_checksum" is added to the URL:
 
-        my $link = $self->make_link("/account.cgi?rm=balance&acct_id=73");
+        my $link = $self->link("/account.cgi?rm=balance&acct_id=73");
         print $link; # /account.cgi?rm=balance&acct_id=73&_checksum=1d7c4b82d075785de04fa6b98b572691
 
     The checksum is a (cryptographic) hash of the URL, plus a secret string
@@ -227,55 +256,76 @@ METHODS
         the application and you want the ability to tweak URL params without
         getting busted.
 
-  make_link
+  link
     Create a link, and add a checksum to it.
 
     You can add parameters to the link directly in the URL:
 
-        my $link = $self->make_link('/cgi-bin/app.cgi?var=value&var2=value2');
+        my $link = $self->link('/cgi-bin/app.cgi?var=value&var2=value2');
 
-    Or you can add them as a hashref of parameters after the URL:
+    Or you can add them as a hash of parameters after the URL:
 
-        my $link = $self->make_link(
+        my $link = $self->link(
             '/cgi-bin/app.cgi',
-            {
-                var  => 'value',
-                var2 => 'value2',
-            }
+            'param1'  => 'value',
+            'param2' => 'value2',
         );
 
-  make_self_link
+  self_link
     Make a link to the current application, with optional parameters, and
     add a checksum to the URL.
 
-        my $link = $self->make_self_link(
-            params => {
-                var1 => 'value1',
-                var1 => 'value2',
-            },
+        my $link = $self->self_link(
+            'param1' => 'value1',
+            'param2' => 'value2',
         );
+
+    "self_link" preserves the value of the current application's
+    "PATH_INFO". For instance if the current URL is:
+
+        /cgi-bin/app.cgi/some/path?foo=bar # PATH_INFO is 'some/path'
+
+    Calling:
+
+        $self->self_link('bar' => 'baz');
+
+    Will produce the URL:
+
+        /cgi-bin/app.cgi/some/path?bar=baz
+
+    If you want to remove the "PATH_INFO" value or replace it with a new
+    value, use path_link.
+
+  path_link
+    Calling "path_link" is the same as calling "self_link", except the
+    current value of "PATH_INFO" can be replaced.
+
+        my $link = $self->path_link(
+            '/new/path',
+            'param1' => 'value1',
+            'param2' => 'value2',
+        );
+
+    For instance if the current URL is:
+
+        /cgi-bin/app.cgi/some/path?foo=bar # PATH_INFO is 'some/path'
+
+    Calling:
+
+        $self->path_link('/new/path');
+
+    Will produce the URL:
+
+        /cgi-bin/app.cgi/new/path?foo=bar
+
+    If you want to remove "PATH_INFO" entirely, call one of the following:
+
+        $self->path_link;
+        $self->path_link(undef, 'param1' => 'val1', 'param2 => 'val2' ...);
+        $self->path_link('', 'param1' => 'val1', 'param2 => 'val2' ...);
 
     If you want to keep the existing "PATH_INFO" that was passed to the
-    current application, use the "keep_path_info" param:
-
-        my $link = $self->make_self_link(
-            keep_path_info => 1,
-            params         => {
-                var1 => 'value1',
-                var1 => 'value2',
-            },
-        );
-
-    If you want to use a different "PATH_INFO" than the one that was used in
-    calling the current application use the "path_info" param:
-
-        my $link = $self->make_self_link(
-            path_info      => '/some/path',
-            params         => {
-                var1 => 'value1',
-                var1 => 'value2',
-            },
-        );
+    current application, use self_link instead.
 
 RUN MODES
   The link_tampered Run Mode

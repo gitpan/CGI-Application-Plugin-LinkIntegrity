@@ -7,6 +7,7 @@ use URI;
 use URI::QueryParam;
 
 my $Created_Link;
+my $Checksum_Callback_Called = 0;
 
 {
     package WebApp;
@@ -56,13 +57,15 @@ my $Created_Link;
     }
     sub create_link {
         my $self = shift;
-        return $self->make_link($self->param('create_link'));
+        return $self->link($self->param('create_link'));
     }
     sub bad_user_no_biscuit {
         my $self = shift;
         return 'rm=bad_user_no_biscuit';
     }
-
+    sub checksum_callback {
+        $Checksum_Callback_Called = 1;
+    }
 }
 ###########################################################################
 # Build the link
@@ -92,23 +95,8 @@ is(WebApp->new->run, 'rm=link_okay', 'link_okay');
 my $checksum = $link->query_param_delete('_checksum');
 $ENV{'QUERY_STRING'}   = $link->query;
 
+ok(!$Checksum_Callback_Called, 'checksum hook not yet called');
 is(WebApp->new->run, '<h1>Access Denied</h1>', 'link_tampered (checksum removed)');
-
-# add a bogus checksum - this should invalidate it
-my $qf = $link->query_form_hash;
-$qf->{'_checksum'} = 'xxxx';
-$qf = $link->query_form_hash($qf);
-
-$ENV{'QUERY_STRING'}   = $link->query;
-
-is(WebApp->new->run, '<h1>Access Denied</h1>', 'link_tampered (checksum changed)');
+ok(!$Checksum_Callback_Called, 'checksum hook called');
 
 
-# restore original checksum - this should revalidate it
-$qf = $link->query_form_hash;
-$qf->{'_checksum'} = $checksum;
-$qf = $link->query_form_hash($qf);
-
-$ENV{'QUERY_STRING'}   = $link->query;
-
-is(WebApp->new->run, 'rm=link_okay', 'link_okay (original checksum added again)');

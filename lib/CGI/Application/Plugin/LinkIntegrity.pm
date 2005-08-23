@@ -10,11 +10,11 @@ CGI::Application::Plugin::LinkIntegrity - Make tamper-resisistent links in CGI::
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
@@ -38,9 +38,9 @@ In your application:
         my $template = $self->load_tmpl('account.html');
 
         $template->param(
-            'balance'    => $self->make_link("/account.cgi?rm=balance&acct_id=$account_id");
-            'transfer'   => $self->make_link("/account.cgi?rm=transfer&acct_id=$account_id");
-            'withdrawal' => $self->make_link("/account.cgi?rm=withdrawl&acct_id=$account_id");
+            'balance'    => $self->link("/account.cgi?rm=balance&acct_id=$account_id");
+            'transfer'   => $self->link("/account.cgi?rm=transfer&acct_id=$account_id");
+            'withdrawal' => $self->link("/account.cgi?rm=withdrawl&acct_id=$account_id");
         );
     }
 
@@ -65,13 +65,43 @@ The URLs created are now tamper-resistent.  If the user changes
 C<acct_id> from C<73> to C<74>, the C<_checksum> will not match, and the
 system will treat it as an intrusion attempt.
 
+=head2 Calling link and self_link directly from the template
+
+If you use C<Template::Toolkit|Template> or
+C<HTML::Template::Plugin::Dot>, you can pass the C<CGI::Application>
+C<$self> object into the template and call C<link> and C<self_link> directly
+from the template.  In your app:
+
+    $template->param(
+        'app'     => $self,
+        'name'    => 'gordon',
+        'email'   => 'gordon@example.com',
+    );
+
+And in your template you can use
+
+    # Template::Toolkit syntax
+    <a href="[% app.self_link('name', name, 'email', email %]">...</a>
+
+    # HTML::Template::Plugin::Dot syntax
+    <a href="<TMPL_VAR NAME="app.self_link('name', name, 'email', email">">...</a>
+
+    # Petal syntax
+    <a href="http://www.example.com"
+       tal:attributes="href app/self_link('name', name, 'email', email)">...</a>
+
+Note that in the parameters of the call to << link >>, items enclosed in
+quotes are treated as literal parameters and barewords are treated as
+template params.  So C<'email'> is the literal string, and C<email> is
+the template paramter named email (in this case 'gordon@example.com').
+
 =head1 DESCRIPTION
 
 C<CGI::Application::Plugin::LinkIntegrity> lets you create
 tamper-resistent links within your CGI::Application project.  When you
-create an URL with C<make_link>, a C<_checksum> is added to the URL:
+create an URL with C<link>, a C<_checksum> is added to the URL:
 
-    my $link = $self->make_link("/account.cgi?rm=balance&acct_id=73");
+    my $link = $self->link("/account.cgi?rm=balance&acct_id=73");
     print $link; # /account.cgi?rm=balance&acct_id=73&_checksum=1d7c4b82d075785de04fa6b98b572691
 
 The checksum is a (cryptographic) hash of the URL, plus a secret string
@@ -92,6 +122,7 @@ to the C<disable> parameter of C<< $self->link_integrity_config >>.
 =cut
 
 use Carp;
+use File::Spec;
 
 use Digest::HMAC;
 use URI;
@@ -106,7 +137,7 @@ use vars qw(
 
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(make_link make_self_link link_integrity_config);
+@EXPORT = qw(link self_link path_link link_integrity_config);
 
 sub import {
     my $caller = scalar(caller);
@@ -232,7 +263,6 @@ user's session, a subroutine is useful so that you get the value of the
 user's session at the time when the checksum is generated, not at the
 time when the link integrity system is configured.
 
-
 =item checksum_param
 
 The name of the checksum parameter, which is added to the query string
@@ -351,30 +381,27 @@ sub _get_config {
     return $config;
 }
 
-=head2 make_link
+=head2 link
 
 Create a link, and add a checksum to it.
 
 You can add parameters to the link directly in the URL:
 
-    my $link = $self->make_link('/cgi-bin/app.cgi?var=value&var2=value2');
+    my $link = $self->link('/cgi-bin/app.cgi?var=value&var2=value2');
 
-Or you can add them as a hashref of parameters after the URL:
+Or you can add them as a hash of parameters after the URL:
 
-    my $link = $self->make_link(
+    my $link = $self->link(
         '/cgi-bin/app.cgi',
-        {
-            var  => 'value',
-            var2 => 'value2',
-        }
+        'param1'  => 'value',
+        'param2' => 'value2',
     );
 
 =cut
 
-sub make_link {
+sub link {
     my $self   = shift;
     my $uri    = shift;
-    my $params = shift;
 
     my $config = _get_config($self);
 
@@ -382,16 +409,7 @@ sub make_link {
 
     my @query_form = $uri->query_form;
 
-    if (ref $params eq 'HASH') {
-        push @query_form, %$params;
-    }
-    elsif (ref $params eq 'ARRAY') {
-        push @query_form, @$params;
-    }
-    elsif ($params) {
-        croak 'usage $self->make_link($uri, \%params) or $self->make_link($uri, \@params)';
-    }
-
+    push @query_form, @_;
 
     my $additional_data = $config->{'additional_data'};
     $additional_data = $additional_data->($self) if ref $additional_data eq 'CODE';
@@ -445,62 +463,99 @@ sub _hmac {
     return $digest;
 }
 
-=head2 make_self_link
+=head2 self_link
 
 Make a link to the current application, with optional parameters, and
 add a checksum to the URL.
 
-    my $link = $self->make_self_link(
-        params => {
-            var1 => 'value1',
-            var1 => 'value2',
-        },
+    my $link = $self->self_link(
+        'param1' => 'value1',
+        'param2' => 'value2',
     );
 
-If you want to keep the existing C<PATH_INFO> that was passed to the
-current application, use the C<keep_path_info> param:
+C<self_link> preserves the value of the current application's C<PATH_INFO>.
+For instance if the current URL is:
 
-    my $link = $self->make_self_link(
-        keep_path_info => 1,
-        params         => {
-            var1 => 'value1',
-            var1 => 'value2',
-        },
-    );
+    /cgi-bin/app.cgi/some/path?foo=bar # PATH_INFO is 'some/path'
 
-If you want to use a different C<PATH_INFO> than the one that was used in
-calling the current application use the C<path_info> param:
+Calling:
 
-    my $link = $self->make_self_link(
-        path_info      => '/some/path',
-        params         => {
-            var1 => 'value1',
-            var1 => 'value2',
-        },
-    );
+    $self->self_link('bar' => 'baz');
+
+Will produce the URL:
+
+    /cgi-bin/app.cgi/some/path?bar=baz
+
+If you want to remove the C<PATH_INFO> value or replace it with a new
+value, use L<path_link>.
 
 =cut
 
-sub make_self_link {
+sub self_link {
     my $self = shift;
-    my %args = @_;
+
+    my $uri = URI->new($self->query->url(-path_info => 1));
+
+    $uri->query_form(@_) if @_;
+
+    return $self->link($uri);
+}
+
+=head2 path_link
+
+Calling C<path_link> is the same as calling C<self_link>, except
+the current value of C<PATH_INFO> can be replaced.
+
+    my $link = $self->path_link(
+        '/new/path',
+        'param1' => 'value1',
+        'param2' => 'value2',
+    );
+
+For instance if the current URL is:
+
+    /cgi-bin/app.cgi/some/path?foo=bar # PATH_INFO is 'some/path'
+
+Calling:
+
+    $self->path_link('/new/path');
+
+Will produce the URL:
+
+    /cgi-bin/app.cgi/new/path?foo=bar
+
+If you want to remove C<PATH_INFO> entirely, call one of the following:
+
+    $self->path_link;
+    $self->path_link(undef, 'param1' => 'val1', 'param2 => 'val2' ...);
+    $self->path_link('', 'param1' => 'val1', 'param2 => 'val2' ...);
+
+If you want to keep the existing C<PATH_INFO> that was passed to the
+current application, use L<self_link> instead.
+
+=cut
+
+sub path_link {
+    my $self = shift;
+    my $path_info = shift;
 
     my $uri;
 
-    if ($args{'path_info'}) {
-        $uri = URI->new($self->query->url);
-        $uri->path_segments($uri->path_segments, $args{'path_info'});
-    }
-    elsif ($args{'keep_path_info'}) {
-        $uri = URI->new($self->query->url(-path_info => 1));
-    }
-    else {
-        $uri = URI->new($self->query->url);
+    $uri = URI->new($self->query->url);
+    if ($path_info) {
+
+        # Convert into an array of path elements
+        my @path_info = File::Spec->splitdir($path_info);
+
+        # Remove the first element if it is the empty root element
+        shift @path_info unless $path_info[0];
+
+        $uri->path_segments($uri->path_segments, @path_info);
     }
 
-    $uri->query_form($args{'params'}) if $args{'params'};
+    $uri->query_form(@_) if @_;
 
-    return $self->make_link($uri);
+    return $self->link($uri);
 }
 
 sub _check_link_integrity {
