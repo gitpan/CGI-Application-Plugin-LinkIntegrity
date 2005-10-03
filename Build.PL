@@ -15,6 +15,7 @@ my $builder = Module::Build->new(
         'URI::QueryParam'  => 0,  # included in URI
         'Digest::HMAC'     => 0,
         'Digest::MD5'      => 0,
+        'CGI'              => 2.37,
     },
     add_to_cleanup      => [ 'CGI-Application-Plugin-LinkIntegrity-*' ],
     create_makefile_pl  => 'traditional',

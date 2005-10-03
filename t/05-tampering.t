@@ -15,7 +15,7 @@ my $Created_Link;
     use vars qw(@ISA);
     use URI;
     use URI::Escape;
-    BEGIN { @ISA = ('CGI::Application'); }
+    @ISA = ('CGI::Application');
 
     use Test::More;
     use CGI::Application::Plugin::LinkIntegrity;

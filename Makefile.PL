@@ -13,7 +13,8 @@ WriteMakefile
                            'URI' => 0,
                            'URI::Escape' => 0,
                            'Digest::MD5' => 0,
-                           'URI::QueryParam' => 0
+                           'URI::QueryParam' => 0,
+                           'CGI' => '2.37'
                          }
         )
 ;

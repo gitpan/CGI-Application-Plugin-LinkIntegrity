@@ -10,11 +10,11 @@ CGI::Application::Plugin::LinkIntegrity - Make tamper-resisistent links in CGI::
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -138,14 +138,6 @@ use vars qw(
 
 @ISA    = qw(Exporter);
 @EXPORT = qw(link self_link path_link link_integrity_config);
-
-sub import {
-    my $caller = scalar(caller);
-    $caller->add_callback('prerun', \&_check_link_integrity);
-    goto &Exporter::import;
-}
-
-CGI::Application->new_hook('invalid_checksum');
 
 =head1 METHODS
 
@@ -326,6 +318,10 @@ my %Config_Defaults = (
 sub link_integrity_config {
     my $self = shift;
 
+    my $caller = scalar(caller);
+
+    $self->new_hook('invalid_checksum');
+    $caller->add_callback('prerun', \&_check_link_integrity);
 
     my $args;
     if (ref $_[0] eq 'HASH') {
@@ -573,6 +569,10 @@ sub _check_link_integrity {
     my $uri = URI->new($self->query->url(-path_info => 1));
 
     my @params;
+
+    # Entry point:  if the URL contains no params we let it through
+    return unless $self->query->url_param;
+
     foreach my $name (sort $self->query->url_param) {
         foreach my $val (sort $self->query->url_param($name)) {
             push @params, $name, $val;

@@ -8,7 +8,7 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
     use CGI::Application;
     use vars qw(@ISA);
     use URI;
-    BEGIN { @ISA = ('CGI::Application'); }
+    @ISA = ('CGI::Application');
 
     use Test::More;
     use CGI::Application::Plugin::LinkIntegrity;

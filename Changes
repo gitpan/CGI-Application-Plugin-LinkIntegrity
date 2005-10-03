@@ -1,6 +1,28 @@
 Revision history for CGI-Application-Plugin-LinkIntegrity
 
-0.03 ????
+0.04 October 3, 2005
+        - made the module actually useful!  In order to generate a valid
+          link, you need to load the module.  However you can't load the
+          module if the application was invoked with an invalid URL.
+          Catch-22.  So now there's an entry point:  if the invoking URL
+          contained no parameters, then it is considered to be valid.
+
+        - changed setup of hooks to happen at config time instead of
+          import time.  Hopefully this makes it possible to use '@ISA'
+          instead of 'use base':
+
+              # Typical usage
+              use base 'CGI::Application';
+              use CGI::Application::Plugin::LinkIntegrity;
+
+              # This also works
+              use CGI::Application;
+              our @ISA = qw(CGI::Application);
+              use CGI::Application::Plugin::LinkIntegrity;
+
+        - made CGI version 2.37 or greater a prerequisite (for url_param)
+
+0.03 August 21, 2005
         - NOTE:  This release is not compatible with previous versions.
         - API radically rewritten to make it possible to protect links
           directly from within templates (Thanks to Michael Peter and
