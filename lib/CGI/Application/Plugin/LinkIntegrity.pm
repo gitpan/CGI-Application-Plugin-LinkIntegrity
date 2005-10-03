@@ -10,11 +10,11 @@ CGI::Application::Plugin::LinkIntegrity - Make tamper-resisistent links in CGI::
 
 =head1 VERSION
 
-Version 0.04
+Version 0.05
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 SYNOPSIS
 
@@ -138,6 +138,11 @@ use vars qw(
 
 @ISA    = qw(Exporter);
 @EXPORT = qw(link self_link path_link link_integrity_config);
+
+use CGI::Application;
+if (CGI::Application->can('new_hook')) {
+    CGI::Application->new_hook('invalid_checksum');
+}
 
 =head1 METHODS
 

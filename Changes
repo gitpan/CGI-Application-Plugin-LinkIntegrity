@@ -1,5 +1,8 @@
 Revision history for CGI-Application-Plugin-LinkIntegrity
 
+0.05 October 3, 2005
+        - now install 'invalid_checksum' hook at class load time
+
 0.04 October 3, 2005
         - made the module actually useful!  In order to generate a valid
           link, you need to load the module.  However you can't load the
