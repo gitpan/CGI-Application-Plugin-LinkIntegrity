@@ -11,3 +11,4 @@ CVS
 ^[^/]*\.html$
 \.gz$
 \.tar$
+^t/prereq_scenarios

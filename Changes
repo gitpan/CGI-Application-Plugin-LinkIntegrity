@@ -1,5 +1,11 @@
 Revision history for CGI-Application-Plugin-LinkIntegrity
 
+0.06 May 18, 2006
+        - the entry point code added so many months ago had a bug in it:
+          When there is a blank query string, CGI.pm adds an empty 'keywords'
+          key to the query paremeters.  This meant that 'GET' requests
+          without parameters would fail.
+
 0.05 October 3, 2005
         - now install 'invalid_checksum' hook at class load time
 

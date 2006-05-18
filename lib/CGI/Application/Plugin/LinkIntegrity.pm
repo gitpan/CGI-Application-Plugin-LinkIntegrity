@@ -10,11 +10,11 @@ CGI::Application::Plugin::LinkIntegrity - Make tamper-resisistent links in CGI::
 
 =head1 VERSION
 
-Version 0.05
+Version 0.06
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 =head1 SYNOPSIS
 
@@ -575,8 +575,18 @@ sub _check_link_integrity {
 
     my @params;
 
-    # Entry point:  if the URL contains no params we let it through
+    # Entry point #1:  if the URL contains no params we let it through
     return unless $self->query->url_param;
+
+    # Entry point #2:  if the URL contains only a single param named 'keywords'
+    # and this param has no value.  This is due to the fact that CGI.pm adds
+    # a blank 'keywords' param when the QUERY_STRING is blank
+
+    my @param = $self->query->url_param;
+    if (@param == 1 and $param[0] eq 'keywords') {
+        my $keywords = $self->query->param('keywords');
+        return if !defined $keywords or $keywords eq '';
+    }
 
     foreach my $name (sort $self->query->url_param) {
         foreach my $val (sort $self->query->url_param($name)) {

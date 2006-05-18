@@ -8,6 +8,7 @@ META.yml
 misc/dist
 misc/makedocs.pl
 misc/module-starter-opts.txt
+misc/prove_prereqs.pl
 misc/style.css
 README
 t/00.load.t
